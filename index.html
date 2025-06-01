@@ -32,6 +32,7 @@
       flex-direction: column;
       align-items: center;
       padding: 20px;
+      scroll-behavior: smooth;
     }
 
     .theme-toggle {
@@ -50,6 +51,11 @@
       animation: fadeIn 1s ease;
     }
 
+    .cover.playing img {
+      box-shadow: 0 0 25px var(--accent);
+      transform: scale(1.05);
+    }
+
     .player-container {
       display: flex;
       flex-direction: column;
@@ -61,6 +67,7 @@
       max-width: 400px;
       width: 100%;
       margin: 20px 0;
+      scroll-margin-top: 80px;
     }
 
     audio {
@@ -84,7 +91,6 @@
       color: white;
       font-size: 1.1em;
       cursor: pointer;
-      transition: background 0.2s ease;
     }
 
     .controls button:hover {
@@ -100,6 +106,7 @@
       padding: 0;
       width: 100%;
       max-width: 400px;
+      overflow: hidden;
     }
 
     li {
@@ -134,6 +141,19 @@
       background: #0f7f59;
     }
 
+    .show-more-btn {
+      background: transparent;
+      border: none;
+      color: var(--accent);
+      cursor: pointer;
+      margin: 5px 0;
+      font-size: 0.9em;
+    }
+
+    .hidden {
+      display: none;
+    }
+
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
@@ -143,11 +163,11 @@
 <body>
   <div class="theme-toggle" onclick="toggleTheme()">🌙</div>
 
-  <div class="cover">
+  <div class="cover" id="cover">
     <img src="https://bankragilgunawan.wordpress.com/wp-content/uploads/2025/06/streetwear5301806508992185033.png" alt="Cover Lagu">
   </div>
 
-  <div class="player-container">
+  <div class="player-container" id="player">
     <audio id="audioPlayer" controls onended="playNext()"></audio>
 
     <div class="controls">
@@ -162,12 +182,14 @@
   </div>
 
   <ul id="playlist"></ul>
+  <button class="show-more-btn hidden" id="showMoreBtn" onclick="toggleShowMore()">Tampilkan Semua Lagu</button>
 
   <script>
     let playlist = [];
     let currentIndex = 0;
     let isShuffling = false;
     let isRepeating = false;
+    let showingAll = false;
     const audio = document.getElementById("audioPlayer");
 
     function toggleTheme() {
@@ -184,8 +206,13 @@
 
     function renderPlaylist() {
       const list = document.getElementById("playlist");
+      const showMoreBtn = document.getElementById("showMoreBtn");
       list.innerHTML = "";
+      const maxToShow = showingAll ? playlist.length : 3;
+
       playlist.forEach((file, index) => {
+        if (!showingAll && index >= maxToShow) return;
+
         const li = document.createElement("li");
         li.innerHTML = `
           <span>${file.name}</span>
@@ -194,6 +221,14 @@
         `;
         list.appendChild(li);
       });
+
+      showMoreBtn.classList.toggle("hidden", playlist.length <= 3);
+      showMoreBtn.textContent = showingAll ? "Sembunyikan Lagu" : "Tampilkan Semua Lagu";
+    }
+
+    function toggleShowMore() {
+      showingAll = !showingAll;
+      renderPlaylist();
     }
 
     function playSong(index) {
@@ -201,6 +236,12 @@
         currentIndex = index;
         audio.src = URL.createObjectURL(playlist[index]);
         audio.play();
+
+        // Scroll ke player dengan efek
+        document.getElementById("player").scrollIntoView({ behavior: "smooth" });
+
+        // Tambah animasi cover
+        document.getElementById("cover").classList.add("playing");
       }
     }
 
@@ -222,8 +263,13 @@
     }
 
     function togglePlay() {
-      if (audio.paused) audio.play();
-      else audio.pause();
+      if (audio.paused) {
+        audio.play();
+        document.getElementById("cover").classList.add("playing");
+      } else {
+        audio.pause();
+        document.getElementById("cover").classList.remove("playing");
+      }
     }
 
     function toggleShuffle() {
@@ -241,9 +287,10 @@
       if (index === currentIndex) {
         audio.pause();
         audio.src = "";
+        document.getElementById("cover").classList.remove("playing");
       }
       renderPlaylist();
     }
   </script>
 </body>
-  </html>
+</html>
