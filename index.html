@@ -17,6 +17,9 @@
         --radius:1rem;
         --shadow:0 10px 25px -10px rgba(0,0,0,.5);
     }
+    html{font-size:100%;}
+    @media(max-width:420px){html{font-size:112.5%;}}
+
     body{
         font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
         background:var(--clr-bg);
@@ -55,7 +58,7 @@
         animation:pulse 1.6s infinite;
     }
     @keyframes pulse{
-        0% {box-shadow:0 0 0 0 var(--clr-primary-lite);}
+        0% {box-shadow:0 0 0 0 var(--clr-primary-lite);}    
         70% {box-shadow:0 0 0 1.25rem rgba(99,102,241,0);} /* fade out */
         100% {box-shadow:0 0 0 0 rgba(99,102,241,0);}    
     }
@@ -77,7 +80,7 @@
     .btn-tog.active{color:var(--clr-accent)}
 
     /* ===== PLAYLIST PANEL ===== */
-    #playlistToggle{position:absolute;top:1rem;left:1rem;font-size:1.4rem;cursor:pointer;background:none;border:none;color:var(--clr-text);}
+    #playlistToggle{position:absolute;top:1rem;left:1rem;font-size:1.4rem;cursor:pointer;background:none;border:none;color:var(--clr-text);z-index:60;}
     .panel{
         position:fixed;top:0;left:0;width:100%;max-width:20rem;height:100vh;background:var(--clr-surface);
         transform:translateX(-100%);transition:transform .35s ease;z-index:50;display:flex;flex-direction:column;
@@ -94,11 +97,21 @@
     .track-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .delete-btn{background:none;border:none;color:#ef4444;cursor:pointer;font-size:1.1rem;}
 
+    /* ===== OVERLAY ===== */
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .35s ease;z-index:40;}
+    .overlay.show{opacity:1;pointer-events:auto;}
+
     /* ===== SCROLLBAR ===== */
     ::-webkit-scrollbar{width:.4rem}::-webkit-scrollbar-track{background:#1e293b}::-webkit-scrollbar-thumb{background:#475569;border-radius:1rem}
 
     /* ===== RESPONSIVE ===== */
-    @media(max-width:420px){.player{padding:1.5rem 1rem}.controls{gap:.9rem}.btn{font-size:1.2rem}}
+    @media(max-width:420px){
+        .player{padding:1.5rem 1rem}
+        .controls{gap:1.2rem}
+        .btn{font-size:1.6rem}
+        #logo{width:12rem;height:12rem}
+        .track-info{font-size:1.25rem}
+    }
 </style>
 </head>
 <body>
@@ -106,7 +119,7 @@
 <div class="player" id="player">
     <button id="playlistToggle" title="Daftar Lagu">🎧</button>
     <div class="logo-wrapper">
-        <img src="https://bankragilgunawan.wordpress.com/wp-content/uploads/2025/06/img_20250603_0835236907856793821977069.jpg" id="logo" alt="Logo" />
+        <img src="https://bankragilgunawan.wordpress.com/wp-content/uploads/2025/06/streetwear5301806508992185033.png" id="logo" alt="Logo" />
     </div>
     <div class="track-info" id="trackInfo">Tidak ada lagu</div>
 
@@ -138,6 +151,9 @@
     <ul class="playlist" id="playlist"></ul>
 </aside>
 
+<!-- Overlay for closing panel on mobile -->
+<div class="overlay" id="overlay"></div>
+
 <audio id="audio"></audio>
 
 <script>
@@ -162,6 +178,7 @@
     const uploadInput=$('#uploadInput');
     const searchInput=$('#search');
     const sortBtn=$('#sortBtn');
+    const overlay=$('#overlay');
 
     const audio=$('#audio');
     const playBtn=$('#playBtn');
@@ -218,7 +235,7 @@
             li.onclick=()=>{
                 currentIndex=tracks.findIndex(tr=>tr.id===t.id);
                 playCurrent();
-                panelEl.classList.remove('open');
+                closePanel();
             };
             playlistEl.appendChild(li);
         });
@@ -239,8 +256,17 @@
         if(shuffle){currentIndex=Math.floor(Math.random()*tracks.length);}else{currentIndex=(currentIndex+step+tracks.length)%tracks.length;}
         playCurrent();
     }
+
+    // ========= PANEL TOGGLE =========
+    function openPanel(){panelEl.classList.add('open');overlay.classList.add('show');}
+    function closePanel(){panelEl.classList.remove('open');overlay.classList.remove('show');}
+
+    playlistToggle.onclick=()=>{
+        if(panelEl.classList.contains('open')){closePanel();}else{openPanel();}
+    };
+    overlay.onclick=closePanel;
+
     // ========= EVENT LISTENERS =========
-    playlistToggle.onclick=()=>panelEl.classList.toggle('open');
     searchInput.oninput=sortAndRender;
     sortBtn.onclick=()=>{sortAZ=!sortAZ;sortBtn.textContent=sortAZ?'A-Z':'Terbaru';sortAndRender();};
 
@@ -259,12 +285,12 @@
     prevBtn.onclick=()=>playNext(-1);
     nextBtn.onclick=()=>playNext(1);
 
-    shuffleBtn.onclick=()=>{shuffle=!shuffle;shuffleBtn.classList.toggle('active',shuffle);};
-    repeatBtn.onclick=()=>{repeat=!repeat;repeatBtn.classList.toggle('active',repeat);};
+    shuffleBtn.onclick=()=>{shuffle=!shuffle;shuffleBtn.classList.toggle('active',shuffle);}    ;
+    repeatBtn.onclick=()=>{repeat=!repeat;repeatBtn.classList.toggle('active',repeat);}    ;
 
     audio.onplay=()=>{playBtn.textContent='⏸';player.classList.add('playing');};
     audio.onpause=()=>{playBtn.textContent='▶️';player.classList.remove('playing');};
-    audio.onended=()=>{repeat?audio.play():playNext(1);};
+    audio.onended=()=>{repeat?audio.play():playNext(1);}    ;
 
     audio.ontimeupdate=()=>{
         const {currentTime,duration}=audio;
